@@ -1,0 +1,19 @@
+{
+  "name": "jsonpp",
+  "version": "0.0.9",
+  "description": "JSON++ provides much needed extensions relating OO concepts to standard JSON.",
+  "main": "JSONPP.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [],
+  "homepage": "https://www.jsonpp.org/",
+  "author": {
+    "name": "Cory J. Geesaman",
+    "url": "https://cory.geesaman.com/"
+  },
+  "license": "BSD-3-Clause",
+  "devDependencies": {
+    "jest": "^26.6.3"
+  }
+}
