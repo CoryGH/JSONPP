@@ -2,7 +2,7 @@
 
 **Objective**
 
-The objective of this project is to provide a practical implementation of JSON parsing and stringingifications with added functionality and versatility over the JSON standard.
+The objective of this project is to provide a practical implementation of JSON parsing and stringingification with added functionality and versatility over the JSON standard.
 
 -------------------------
 
