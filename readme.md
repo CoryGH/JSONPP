@@ -1,9 +1,13 @@
-#JSON++
-##Objective
+***JSON++***
+
+**Objective**
+
 The objective of this project is to provide a practical implementation of JSON parsing and stringingifications with added functionality and versatility over the JSON standard.
 
-##Additional Features
-###Lambdas
+**Additional Features**
+
+***Lambdas***
+
 Contextless lambda expressions are supported within this library, for example:
 
     JSONPP.stringify({
@@ -22,7 +26,7 @@ will produce:
 
 and translate back to the original object via `JSONPP.parse()`.
 
-###Object References
+***Object References***
 
 JSON++ handles circular object references by reducing all references to the same object to a path-based identifier.
 
@@ -70,7 +74,7 @@ as well as the following for arrays:
         }
     ]
 
-###Root Level Arrays
+***Root Level Arrays***
 This JSON interpreter allows for root-level arrays, for example:
 
     JSONPP.stringify([
@@ -95,7 +99,8 @@ will yield:
 
 and will translate back to the original array via `JSON.parse()`.
 
-###Type Preservation
+***Type Preservation***
+
 Type preservation is possible assuming definitions of types exist on the `parse` end of the data, otherwise `Object` instantiation will occur as normal JSON would.  Example:
 
     class Foo {
