@@ -4,6 +4,8 @@
 
 The objective of this project is to provide a practical implementation of JSON parsing and stringingifications with added functionality and versatility over the JSON standard.
 
+-------------------------
+
 **Additional Features**
 
 ***Lambdas***
