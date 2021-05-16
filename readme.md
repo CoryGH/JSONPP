@@ -10,7 +10,7 @@
 - [Useage](#useage)
     - [Methods](#methods)
         - [parse(jsonpp[, constructorHash={}])](#parsejsonpp-constructorhash)
-        - [stringify(obj[, replacer=undefined[, space=undefined[, forceMultiline=false]]])](##stringifyobj-replacerundefined-spaceundefined-forcemultilinefalse)
+        - [stringify(obj[, replacer=undefined[, space=undefined[, forceMultiline=false]]])](#stringifyobj-replacerundefined-spaceundefined-forcemultilinefalse)
 
 ## Objective
 
