@@ -6,29 +6,9 @@ The objective of this project is to provide a practical implementation of JSON p
 
 ## Additional Features
 
-### Lambdas
+### Circular and Object References
 
-Contextless lambda expressions are supported within this library, for example:
-
-    JSONPP.stringify({
-        add: function (left, right) {
-            return (left + right);
-        {
-    });
-
-will produce:
-
-    {
-        "add": (left, right) => {
-            return (left + right);
-        }
-    }
-
-and translate back to the original object via `JSONPP.parse()`.
-
-### Object References
-
-JSON++ handles circular object references by reducing all references to the same object to a path-based identifier.
+JSON++ handles circular object references by reducing all references to the same object to a path-based identifier representing the definition of that object.
 
     let obj1 = {
         foo: 'bar'
@@ -38,7 +18,7 @@ JSON++ handles circular object references by reducing all references to the same
     };
     obj1.qux = obj2;
     obj1.quux = obj2;
-    JSONPP.stringify(obj1);
+    console.log(JSONPP.stringify(obj1, undefined, 4, true));
 
 Produces:
 
@@ -56,36 +36,58 @@ as well as the following for arrays:
         foo: ['bar']
     };
     let obj2 = {
-        baz: obj1
+    baz: obj1
     };
     obj1.foo.push(obj2);
     obj1.qux = obj2;
-    JSONPP.stringify([obj1]);
+    console.log(JSONPP.stringify([obj1], undefined, 4, true));
+
+&nbsp;
 
     [
         {
             "foo": [
                 "bar",
                 {
-                    "baz": /
+                    "baz": /0
                 }
             ],
-            "qux": /"foo"/[1]
+            "qux": /0/"foo"/1
         }
     ]
+
+### Lambdas
+
+Contextless lambda expressions are supported within this library, for example:
+
+    console.log(JSONPP.stringify({
+        add: function (left, right) {
+            return (left + right);
+        {
+    }));
+
+will produce:
+
+    {
+        "add": (left, right) => {
+            return (left + right);
+        }
+    }
+
+and translate back to the original object via `JSONPP.parse()`.
 
 ### Root Level Arrays
 
 This JSON interpreter allows for root-level arrays, for example:
 
-    JSONPP.stringify([
+    console.log(JSONPP.stringify([
         {
             name: 'foo'
         },
         {
             name: 'bar'
         }
-    ]);
+    ], undefined, 4, true));
 
 will yield:
 
