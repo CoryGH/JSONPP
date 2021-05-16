@@ -63,7 +63,7 @@ JSON++ supports object-level attributes/array-elements as extensions of an `Arra
     class Foo extends Array {
         constructor(settings) {
             super();
-            this._bar = 'bar';
+            this._bar = (settings.hasOwnProperty('Bar') ? settings['Bar'] : 'bar');
         }
         
         get Bar() {
