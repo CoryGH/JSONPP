@@ -1,7 +1,7 @@
 {
   "name": "jsonplusplus",
   "version": "0.0.999",
-  "description": "JSON++ provides much needed extensions relating OO concepts to standard JSON.",
+  "description": "JSON++ provides much needed extensions relating OO concepts to standard JSON while maintaining backwards compatibility for parsing of standard JSON.",
   "keywords": [
     "json",
     "jsonpp",
