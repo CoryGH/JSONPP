@@ -1,5 +1,12 @@
 const objectFilter = new RegExp(/^\s*[a-zA-Z]*\s*\{/);
 
+function bracketPair(left, right) {
+    if ((left === '(') && (right === ')')) { return (true); }
+    if ((left === '[') && (right === ']')) { return (true); }
+    if ((left === '{') && (right === '}')) { return (true); }
+    return (false);
+}
+
 function escaped(str, index) {
     let ret = false;
     for (let i = index - 1; i >= 0; i--) {
@@ -8,13 +15,6 @@ function escaped(str, index) {
         } else { break; }
     }
     return (ret);
-}
-
-function bracketPair(left, right) {
-    if ((left === '(') && (right === ')')) { return (true); }
-    if ((left === '[') && (right === ']')) { return (true); }
-    if ((left === '{') && (right === '}')) { return (true); }
-    return (false);
 }
 
 function getRWProperties(obj) {
@@ -135,53 +135,6 @@ function mirroredWith(history, char) {
     return (false);
 }
 
-function splitOnLevel(str, splitOn) {
-    let ret = [];
-    let history = [];
-    let start = 0;
-    let inString = false;
-    let splitChar = splitOn.substr(0, 1);
-    for (let i = 0; i < str.length; i++) {
-        let char = str.substr(i, 1);
-        switch (char) {
-            case '(':
-            case ')':
-            case '[':
-            case ']':
-            case '{':
-            case '}':
-                if (inString === false) {
-                    history.push(char);
-                }
-                break;
-            case "'":
-            case '"':
-                if (inString === char) {
-                    if (!escaped(str, i)) {
-                        inString = false;
-                    }
-                } else if (inString === false) {
-                    inString = char;
-                }
-                //history.push(char);
-                break;
-            case splitChar:
-                if (inString === false) {
-                    if ((splitOn.length < 2) || (str.substr(i, splitOn.length) === splitOn)) {
-                        if (isPalindromic(history)) {
-                            ret.push(str.substr(start, i - start));
-                            history = [];
-                            start = i + splitOn.length;
-                        }
-                    }
-                }
-                break;
-        }
-    }
-    ret.push(str.substr(start, str.length - start));
-    return (ret);
-}
-
 function parseArray(json, constructorHash, path, paths, linkQueue) {
     if (json.substr(json.length - 1, 1) !== ']') {
         throw 'Invalid JSON++';
@@ -245,7 +198,7 @@ function parseObject(json, constructorHash, path, paths, linkQueue) {
 function parseValue(value, type, constructorHash, path, paths, linkQueue) {
     let ret = undefined;
     if ((type !== undefined) && (constructorHash !== undefined) && (constructorHash.hasOwnProperty(type))) {
-        let newSettings = exports.parse(value, constructorHash, path, paths);
+        let newSettings = _parse(value, constructorHash, path, paths, linkQueue);
         if (newSettings instanceof Array) {
             ret = new constructorHash[type](...newSettings);
         } else {
@@ -314,6 +267,53 @@ function parseValue(value, type, constructorHash, path, paths, linkQueue) {
 
 }
 
+function splitOnLevel(str, splitOn) {
+    let ret = [];
+    let history = [];
+    let start = 0;
+    let inString = false;
+    let splitChar = splitOn.substr(0, 1);
+    for (let i = 0; i < str.length; i++) {
+        let char = str.substr(i, 1);
+        switch (char) {
+            case '(':
+            case ')':
+            case '[':
+            case ']':
+            case '{':
+            case '}':
+                if (inString === false) {
+                    history.push(char);
+                }
+                break;
+            case "'":
+            case '"':
+                if (inString === char) {
+                    if (!escaped(str, i)) {
+                        inString = false;
+                    }
+                } else if (inString === false) {
+                    inString = char;
+                }
+                //history.push(char);
+                break;
+            case splitChar:
+                if (inString === false) {
+                    if ((splitOn.length < 2) || (str.substr(i, splitOn.length) === splitOn)) {
+                        if (isPalindromic(history)) {
+                            ret.push(str.substr(start, i - start));
+                            history = [];
+                            start = i + splitOn.length;
+                        }
+                    }
+                }
+                break;
+        }
+    }
+    ret.push(str.substr(start, str.length - start));
+    return (ret);
+}
+
 function renderElements(elements, space, forceMultiline, level) {
     if (space === undefined) {
         return (elements.join(','));
@@ -375,6 +375,65 @@ function toBrackets(str) {
         }
     }
     return (ret);
+}
+
+function _parse(json, constructorHash, path, paths, linkQueue) {
+    json = json.trim();
+    let arrayMode = (json.substr(0, 1) === '[');
+    let ret = undefined;
+    if (arrayMode) {
+        ret = parseArray(json, constructorHash, path, paths, linkQueue);
+    } else {
+        let obj = isObject(json);
+        if (obj === false) {
+            throw 'Invalid JSON++ root object';
+        } else {
+            if (obj.type !== null) {
+                ret = parseObject(obj.obj, constructorHash, path, paths, linkQueue);
+            } else {
+                ret = parseValue(obj.obj, obj.type, constructorHash, path, paths, linkQueue);
+            }
+        }
+    }
+    return (ret);
+}
+
+function _set(obj, path, value) {
+    let parts = splitOnLevel(path, '/');
+    let node = obj;
+    let props = getRWProperties(obj);
+    parts.shift();
+    while (parts.length > 0) {
+        let trimmed = parts.shift().trim();
+        let start = trimmed.substr(0, 1);
+        let id = undefined;
+        switch (start) {
+            case '"':
+                id = trimmed.substr(1, trimmed.length - 2);
+                if (!node.hasOwnProperty(id)) {
+                    if (props.indexOf(id) < 0) {
+                        throw 'Linking failed: path `' + path + '` does not exist'
+                    }
+                }
+                break;
+            case '[':
+                id = parseInt(trimmed.substr(1, trimmed.length - 2));
+                if (!node.hasOwnProperty(id)) {
+                    if (props.indexOf(id) < 0) {
+                        throw 'Linking failed: path `' + path + '` does not exist'
+                    }
+                }
+                break;
+        }
+        if (id !== undefined) {
+            if (parts.length < 1) {
+                node[id] = value;
+            } else {
+                node = node[id];
+            }
+            props = getRWProperties(node);
+        }
+    }
 }
 
 function _stringify(obj, replacer, space, forceMultiline, level, path, paths) {
@@ -456,70 +515,10 @@ function _stringify(obj, replacer, space, forceMultiline, level, path, paths) {
     return (ret);
 }
 
-function _parse(json, constructorHash, path, paths, linkQueue) {
-    json = json.trim();
-    let arrayMode = (json.substr(0, 1) === '[');
-    let ret = undefined;
-    if (arrayMode) {
-        ret = parseArray(json, constructorHash, path, paths, linkQueue);
-    } else {
-        let obj = isObject(json);
-        if (obj === false) {
-            throw 'Invalid JSON++ root object';
-        } else {
-            if (obj.type !== null) {
-                ret = parseObject(obj.obj, constructorHash, path, paths, linkQueue);
-            } else {
-                ret = parseValue(obj.obj, obj.type, constructorHash, path, paths, linkQueue);
-            }
-        }
-    }
-    return (ret);
-}
-
-function _set(obj, path, value) {
-    let parts = splitOnLevel(path, '/');
-    let node = obj;
-    let props = getRWProperties(obj);
-    parts.shift();
-    while (parts.length > 0) {
-        let trimmed = parts.shift().trim();
-        let start = trimmed.substr(0, 1);
-        let id = undefined;
-        switch (start) {
-            case '"':
-                id = trimmed.substr(1, trimmed.length - 2);
-                if (!node.hasOwnProperty(id)) {
-                    if (props.indexOf(id) < 0) {
-                        throw 'Linking failed: path `' + path + '` does not exist'
-                    }
-                }
-                break;
-            case '[':
-                id = parseInt(trimmed.substr(1, trimmed.length - 2));
-                if (!node.hasOwnProperty(id)) {
-                    if (props.indexOf(id) < 0) {
-                        throw 'Linking failed: path `' + path + '` does not exist'
-                    }
-                }
-                break;
-        }
-        if (id !== undefined) {
-            if (parts.length < 1) {
-                node[id] = value;
-            } else {
-                node = node[id];
-            }
-            props = getRWProperties(node);
-        }
-    }
-}
-
-exports.parse = function (json, constructorHash, path, paths, linkQueue) {
-    if (path === undefined) { path = '/'; }
-    if (paths === undefined) { paths = []; }
-    if (linkQueue === undefined) { linkQueue = []; }
-    let ret = _parse(json, constructorHash, path, paths, linkQueue);
+exports.parse = function (json, constructorHash) {
+    let paths = [];
+    let linkQueue = [];
+    let ret = _parse(json, constructorHash, '/', paths, linkQueue);
     for (let i = linkQueue.length - 1; i >= 0; i--) {
         let obj = undefined;
         for (let j = paths.length - 1; j >= 0; j--) {

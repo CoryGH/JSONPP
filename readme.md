@@ -160,3 +160,66 @@ To yield:
             "Qux":"qux"
         })
     }
+
+## Useage
+
+Via NPM:
+
+    npm install --save jsonplusplus
+
+Then within node.js:
+
+    const JSONPP = require('jsonplusplus');
+
+### Methods
+
+#### parse(jsonpp[, constructorHash={}])
+
+The `parse` function deserializes a JSON++ string.
+
+##### _arguments_
+
+_jsonpp_
+
+The first argument (`jsonpp`) to the `parse` function is the string of JSON++ to be deserialized.
+
+[_constructorHash_]
+
+The optional `constructorHash` argument to the `parse` function is the second argument and when included acts as a non-`Object` type mapping from JSON++ to code, for example:
+
+    {
+        "Foo": Foo
+    }
+
+would define a `Foo` type (key) which points to the `Foo` class (value) in-code.  The translated object is typically passed as a `settings` `Object` to the constructor of the type being mapped.
+
+#### stringify(obj[, replacer=undefined[, space=undefined[, forceMultiline=false]]])
+
+The `stringify` function serializes into a JSON++ string.
+
+##### _arguments_
+
+_obj_
+
+The `Array`, `Object`, or `Class` instance to be serialized.
+
+_replacer_
+
+**TODO**: not yet implemented, stub for `JSON.parse` style `replacer` hook.
+
+_space_
+
+The optional `space` argument may be a `String` up to 10 characters or a `Number` denoting the number of spaces to indent with.  When `space` is `undefined` no whitespace will be utilized outside of names and values.
+
+_forceMultiline_
+
+`forceMultiline` is an optional argument to `stringify` which will override the rule of putting `Object` and `Array` bodies totalling under 80 characters with whitespace on the same line.  `forceMultiline` may be `false`|`undefined` to remain disabled, `true` to be enabled, or take an object with one or more of the properties which follow:
+
+    {
+        array: true,
+        class: true,
+        function: true,
+        object: true
+    }
+
+If `forceMultiline.class` is `undefined` then `forceMultiline.object` will fill the value for it, the default value otherwise is `false`. 
