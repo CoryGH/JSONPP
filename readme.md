@@ -76,6 +76,22 @@ will produce:
 
 and translate back to the original object via `JSONPP.parse()`.
 
+Valid JSON++ lambda formats are as follows:
+
+    (foo) => { return (foo + 1); }
+
+&nbsp;
+
+    (foo) => foo + 1
+
+&nbsp;
+
+    foo => { return (foo + 1); }
+
+&nbsp;
+
+    foo => foo + 1
+
 ### Root Level Arrays
 
 This JSON interpreter allows for root-level arrays, for example:
