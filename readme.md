@@ -1,6 +1,6 @@
-# JSON
+#json JSON
 
-##objective Objective
+## Objective
 
 The objective of this project is to provide a practical implementation of JSON parsing and stringification with added functionality and versatility over the JSON standard while maintaining backwards compatibility for parsing of standard JSON.
 
