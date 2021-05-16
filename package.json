@@ -1,7 +1,15 @@
 {
   "name": "jsonplusplus",
-  "version": "0.0.99",
+  "version": "0.0.999",
   "description": "JSON++ provides much needed extensions relating OO concepts to standard JSON.",
+  "keywords": [
+    "json",
+    "jsonpp",
+    "json++",
+    "jsonplusplus",
+    "node.js",
+    "nodejs"
+  ],
   "main": "JSONPP.js",
   "scripts": {
     "test": "jest"
