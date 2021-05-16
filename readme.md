@@ -241,7 +241,7 @@ Then within node.js:
 
 ### Methods
 
-#### parse(jsonpp[, constructorHash={}])
+### parse(jsonpp[, constructorHash={}])
 
 The `parse` function deserializes a JSON++ string.
 
@@ -261,7 +261,7 @@ The optional `constructorHash` argument to the `parse` function is the second ar
 
 would define a `Foo` type (key) which points to the `Foo` class (value) in-code.  The translated object is typically passed as a `settings` `Object` to the constructor of the type being mapped.
 
-#### stringify(obj[, replacer=undefined[, space=undefined[, forceMultiline=false]]])
+### stringify(obj[, replacer=undefined[, space=undefined[, forceMultiline=false]]])
 
 The `stringify` function serializes into a JSON++ string.
 
