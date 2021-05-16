@@ -83,7 +83,7 @@ JSON++ supports object-level attributes/array-elements as extensions of an `Arra
 will yield:
 
     Foo {
-        "Foo": "foo"
+        "Bar": "bar"
     }[
         "1",
         2,
@@ -92,7 +92,7 @@ will yield:
 
 which can be in turn deserialized with:
 
-    let foo = JSONPP.parse('A{"Foo":"foo"}["1",2,"3"]', {
+    let foo = JSONPP.parse('Foo{"Bar":"bar"}["1",2,"3"]', {
         Foo: Foo
     });
 
