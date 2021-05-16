@@ -9,8 +9,8 @@
     - [Type Preservation](#type-preservation)
 - [Useage](#useage)
     - [Methods](#methods)
-        - [parse(jsonpp[, constructorHash={}])](#parse(jsonpp[,-constructorHash={}]))
-        - [stringify(obj[, replacer=undefined[, space=undefined[, forceMultiline=false]]])](#stringify(obj[,-replacer=undefined[,-space=undefined[,-forceMultiline=false]]]))
+        - [parse(jsonpp[, constructorHash={}])](#parsejsonpp-constructorhash)
+        - [stringify(obj[, replacer=undefined[, space=undefined[, forceMultiline=false]]])](##stringifyobj-replacerundefined-spaceundefined-forcemultilinefalse)
 
 ## Objective
 
