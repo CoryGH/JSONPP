@@ -1,4 +1,16 @@
-# JSON
+# JSON++
+
+- [Objective](#objective)
+- [Additional Features](#additional-features)
+    - [Circular and Object References](#circular-and-object-references)
+    - [Collections](#collections)
+    - [Lambdas](#lambdas)
+    - [Root Level Arrays](#root-level-arrays)
+    - [Type Preservation](#type-preservation)
+- [Useage](#useage)
+    - [Methods](#methods)
+        - [parse(jsonpp[, constructorHash={}])](#parse(jsonpp[,-constructorHash={}]))
+        - [stringify(obj[, replacer=undefined[, space=undefined[, forceMultiline=false]]])](#stringify(obj[,-replacer=undefined[,-space=undefined[,-forceMultiline=false]]]))
 
 ## Objective
 
