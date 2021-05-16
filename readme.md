@@ -2,7 +2,6 @@
 
 - [Objective](#objective)
 - [Additional Features](#additional-features)
-<<<<<<< HEAD
     - [Circular and Object References](#circular-and-object-references)
     - [Collections](#collections)
     - [Lambdas](#lambdas)
@@ -12,24 +11,6 @@
     - [Methods](#methods)
         - [parse(jsonpp[, constructorHash={}])](#parse(jsonpp[,-constructorHash={}]))
         - [stringify(obj[, replacer=undefined[, space=undefined[, forceMultiline=false]]])](#stringify(obj[,-replacer=undefined[,-space=undefined[,-forceMultiline=false]]]))
-=======
-	- [Circular and Object References](#circular-and-object-references)
-	- [Circular and Object References](#circular-and-object-references)
-	- [Circular and Object References](#circular-and-object-references)
-	- [Circular and Object References](#circular-and-object-references)
-	- [Circular and Object References](#circular-and-object-references)
-	- [Circular and Object References](#circular-and-object-references)
-- [List](#list)
-	- [List CheckBox](#list-checkbox)
-- [Link](#link)
-	- [Anchor links](#anchor-links)
-- [Blockquote](#blockquote)
-- [Image | GIF](#image--gif)
-- [Style Text](#style-text)
-	- [Italic](#italic)
-	- [Bold](#bold)
-	- [Strikethrough](#strikethrough)
->>>>>>> 3c669cafa5acfa0be5710ed543539afc3be80b7c
 
 ## Objective
 
