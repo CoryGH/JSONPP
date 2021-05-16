@@ -1,4 +1,23 @@
-# JSON
+# JSON++
+
+- [Objective](#objective)
+- [Additional Features](#additional-features)
+	- [Circular and Object References](#circular-and-object-references)
+	- [Circular and Object References](#circular-and-object-references)
+	- [Circular and Object References](#circular-and-object-references)
+	- [Circular and Object References](#circular-and-object-references)
+	- [Circular and Object References](#circular-and-object-references)
+	- [Circular and Object References](#circular-and-object-references)
+- [List](#list)
+	- [List CheckBox](#list-checkbox)
+- [Link](#link)
+	- [Anchor links](#anchor-links)
+- [Blockquote](#blockquote)
+- [Image | GIF](#image--gif)
+- [Style Text](#style-text)
+	- [Italic](#italic)
+	- [Bold](#bold)
+	- [Strikethrough](#strikethrough)
 
 ## Objective
 
