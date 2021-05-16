@@ -51,6 +51,38 @@ describe('JSONPP.parse', () => {
         expect(check.length).toBe(1);
         expect(check[0](1, 2)).toBe(3);
     });
+    it('should work with collections', () => {
+        class A extends Array {
+            constructor(settings) {
+                super();
+                this._foo = 'foo';
+            }
+
+            get Foo() {
+                return (this._foo);
+            }
+            set Foo(value) {
+                this._foo = value;
+            }
+        }
+        let test = 'A {\n' +
+            '    "Foo": "foo"\n' +
+            '}[\n' +
+            '    "1",\n' +
+            '    2,\n' +
+            '    "3"\n' +
+            ']';
+        let check = JSONPP.parse(test, {
+            A: A
+        });
+        expect(check instanceof A).toBeTruthy();
+        expect(check.length).toBe(3);
+        expect(check.hasOwnProperty('_foo')).toBeTruthy();
+        expect(check._foo).toBe('foo');
+        expect(check[0]).toBe('1');
+        expect(check[1]).toBe(2);
+        expect(check[2]).toBe('3');
+    });
     it('should work with deep objects', () => {
         let test = '{"foo":{"bar":"baz","qux":[1,2,3]}}';
         let check = JSONPP.parse(test);
@@ -169,6 +201,27 @@ describe('JSONPP.stringify', () => {
             (left, right) => { return left + right; }
         ];
         let check = '[(foo) => foo,(left, right) => {\n      return left + right;\n    },(left, right) => {\n      return left + right;\n    }]';
+        expect(JSONPP.stringify(test)).toBe(check);
+    });
+    it('should work with collections', () => {
+        class A extends Array {
+            constructor(settings) {
+                super();
+                this._foo = 'foo';
+            }
+
+            get Foo() {
+                return (this._foo);
+            }
+            set Foo(value) {
+                this._foo = value;
+            }
+        }
+        let test = new A({ });
+        test.push('1');
+        test.push(2);
+        test.push('3');
+        let check = 'A{"Foo":"foo"}["1",2,"3"]';
         expect(JSONPP.stringify(test)).toBe(check);
     });
     it('should work with deep objects', () => {

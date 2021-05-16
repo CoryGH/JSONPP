@@ -47,7 +47,7 @@ function isObject(json) {
         if (!objectFilter.test(trimmed.substr(0, firstBracket + 1))) { return (false); }
         return ({
             obj: trimmed.substr(firstBracket),
-            type: trimmed.substr(0, firstBracket)
+            type: trimmed.substr(0, firstBracket).trim()
         });
     } else {
         return (false);
@@ -164,29 +164,50 @@ function parseArray(json, constructorHash, path, paths, linkQueue) {
     return (ret);
 }
 
-function parseObject(json, constructorHash, path, paths, linkQueue) {
-    if (json.substr(json.length - 1, 1) !== '}') {
-        throw 'Invalid JSON++';
-    }
+function parseObject(json, type, constructorHash, path, paths, linkQueue) {
     let ret = { };
-    let elements = splitOnLevel(json.substr(1, json.length - 2), ',');
-    for (let i = 0; i < elements.length; i++) {
-        let parts = splitOnLevel(elements[i], ':');
-        switch (parts.length) {
-            case 2:
-                parts[0] = parts[0].trim();
-                parts[1] = parts[1].trim();
-                let objInfo = isObject(parts[1]);
-                if ((objInfo !== false) && (objInfo['type'] !== null)) {
-                    ret[parseValue(parts[0], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue)] = parseValue(objInfo.obj, objInfo.type, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue);
-                } else {
-                    ret[parseValue(parts[0], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue)] = parseValue(parts[1], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue);
-                }
-                break;
-            default:
-                throw 'Invalid JSON++';
+    let coreParts = splitOnLevel(splitOnLevel(json, ' ').join(''), '}[');
+    if (coreParts.length < 3) {
+        if (coreParts.length > 1) {
+            coreParts[0] += '}';
+            coreParts[0] = coreParts[0].trim();
+            ret = [];
         }
-
+        if (coreParts[0].substr(coreParts[0].length - 1, 1) !== '}') {
+            throw 'Invalid JSON++';
+        }
+        let elements = splitOnLevel(coreParts[0].substr(1, coreParts[0].length - 2), ',');
+        for (let i = 0; i < elements.length; i++) {
+            let parts = splitOnLevel(elements[i], ':');
+            switch (parts.length) {
+                case 2:
+                    parts[0] = parts[0].trim();
+                    parts[1] = parts[1].trim();
+                    let objInfo = isObject(parts[1]);
+                    if ((objInfo !== false) && (objInfo['type'] !== null)) {
+                        ret[parseValue(parts[0], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue)] = parseValue(objInfo.obj, objInfo.type, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue);
+                    } else {
+                        ret[parseValue(parts[0], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue)] = parseValue(parts[1], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue);
+                    }
+                    break;
+                default:
+                    throw 'Invalid JSON++';
+            }
+        }
+    } else {
+        throw 'Invalid JSON++ object';
+    }
+    if ((type !== undefined) && (constructorHash !== undefined) && (constructorHash.hasOwnProperty(type))) {
+        if (ret instanceof Array) {
+            ret = new constructorHash[type](...ret);
+        } else {
+            ret = new constructorHash[type](ret);
+        }
+    }
+    if (coreParts.length === 2) {
+        coreParts[1] = '[' + coreParts[1].trim();
+        let arrayValues = parseArray(coreParts[1], constructorHash, path, paths, linkQueue);
+        Array.prototype.splice.apply(ret, [0, ret.length].concat(arrayValues));
     }
     paths.push({
         object: ret,
@@ -215,7 +236,7 @@ function parseValue(value, type, constructorHash, path, paths, linkQueue) {
     if (trimmed === 'undefined') { return (undefined); }
     let start = trimmed.substr(0, 1);
     if (start === '{') {
-        return (ret = parseObject(trimmed, constructorHash, path, paths, linkQueue));
+        return (ret = parseObject(trimmed, undefined, constructorHash, path, paths, linkQueue));
     } else if (start === '[') {
         return (parseArray(trimmed, constructorHash, path, paths, linkQueue));
     } else if (start === '/') {
@@ -267,6 +288,18 @@ function parseValue(value, type, constructorHash, path, paths, linkQueue) {
 
 }
 
+function _splitOnLevelSplitCharCheck(inString, splitOn, str, ret, i, history, start) {
+    if (inString === false) {
+        if ((splitOn.length < 2) || (str.substr(i, splitOn.length) === splitOn)) {
+            if (isPalindromic(history)) {
+                ret.push(str.substr(start, i - start));
+                history.splice(0, history.length);
+                return (i + splitOn.length);
+            }
+        }
+    }
+    return (start);
+}
 function splitOnLevel(str, splitOn) {
     let ret = [];
     let history = [];
@@ -277,13 +310,23 @@ function splitOnLevel(str, splitOn) {
         let char = str.substr(i, 1);
         switch (char) {
             case '(':
-            case ')':
             case '[':
-            case ']':
             case '{':
+                if (char === splitChar) {
+                    start = _splitOnLevelSplitCharCheck(inString, splitOn, str, ret, i, history, start);
+                }
+                if (inString === false) {
+                    history.push(char);
+                }
+                break;
+            case ')':
+            case ']':
             case '}':
                 if (inString === false) {
                     history.push(char);
+                }
+                if (char === splitChar) {
+                    start = _splitOnLevelSplitCharCheck(inString, splitOn, str, ret, i, history, start);
                 }
                 break;
             case "'":
@@ -295,18 +338,9 @@ function splitOnLevel(str, splitOn) {
                 } else if (inString === false) {
                     inString = char;
                 }
-                //history.push(char);
                 break;
             case splitChar:
-                if (inString === false) {
-                    if ((splitOn.length < 2) || (str.substr(i, splitOn.length) === splitOn)) {
-                        if (isPalindromic(history)) {
-                            ret.push(str.substr(start, i - start));
-                            history = [];
-                            start = i + splitOn.length;
-                        }
-                    }
-                }
+                start = _splitOnLevelSplitCharCheck(inString, splitOn, str, ret, i, history, start);
                 break;
         }
     }
@@ -389,7 +423,7 @@ function _parse(json, constructorHash, path, paths, linkQueue) {
             throw 'Invalid JSON++ root object';
         } else {
             if (obj.type !== null) {
-                ret = parseObject(obj.obj, constructorHash, path, paths, linkQueue);
+                ret = parseObject(obj.obj, obj.type, constructorHash, path, paths, linkQueue);
             } else {
                 ret = parseValue(obj.obj, obj.type, constructorHash, path, paths, linkQueue);
             }
@@ -436,6 +470,63 @@ function _set(obj, path, value) {
     }
 }
 
+function stringifyArray(obj, type, replacer, space, forceMultiline, level, path, paths) {
+    let elements = [];
+    let ret = '[';
+    for (let i = 0; i < obj.length; i++) {
+        elements.push(_stringify(obj[i], replacer, space, forceMultiline, level + 1, path + (path !== '/' ? '/' : '') + i.toString(), paths));
+    }
+    ret += renderElements(elements, space, forceMultiline.array, level);
+    ret += ']';
+    return (ret);
+}
+
+function stringifyClass(obj, type, replacer, space, forceMultiline, level, path, paths) {
+    let elements = [];
+    let ret = type + (space !== undefined ? ' ' : '');
+    ret += '{';
+    let properties = getRWProperties(obj);
+    for (let j = properties.length - 1; j >= 0; j--) {
+        elements.push('"' + properties[j].toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[properties[j]], replacer, space, forceMultiline, level + 1, path + (path !== '/' ? '/' : '') + '"' + properties[j].toString() + '"', paths));
+    }
+    ret += renderElements(elements, space, forceMultiline.class, level);
+    ret += '}';
+    return (ret);
+}
+
+function stringifyFunction(obj, replacer, space, forceMultiline, level, path, paths) {
+    let ret = '';
+    let fnBody = obj.toString();
+    if (fnBody.substr(0, 9) === 'function ') {
+        ret += fnBody.substr(9).replace(') {', ') => {');
+    } else {
+        fnBody = fnBody.split(' => ');
+        if (fnBody[0].substr(0, 1) === '(') {
+            ret += fnBody[0] + ' => ';
+            fnBody.shift();
+        } else {
+            ret += '(' + fnBody[0] + ') => ';
+            fnBody.shift();
+        }
+        fnBody = fnBody.join(' => ');
+        ret += fnBody;
+    }
+    return (ret);
+}
+
+function stringifyObject(obj, type, replacer, space, forceMultiline, level, path, paths) {
+    let elements = [];
+    let ret = '{';
+    for (let key in obj) {
+        if (obj.hasOwnProperty(key)) {
+            elements.push('"' + key.toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[key], replacer, space, forceMultiline, level + 1, path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"', paths));
+        }
+    }
+    ret += renderElements(elements, space, forceMultiline.object, level);
+    ret += '}';
+    return (ret);
+}
+
 function _stringify(obj, replacer, space, forceMultiline, level, path, paths) {
     let ret = '';
     for (let i = paths.length - 1; i >= 0; i--) {
@@ -452,61 +543,38 @@ function _stringify(obj, replacer, space, forceMultiline, level, path, paths) {
             object: obj,
             path: path
         });
-        let temp = obj.toString();
-        if (temp.substr(0, 9) === 'function ') {
-            ret += temp.substr(9).replace(') {', ') => {');
-        } else {
-            temp = temp.split(' => ');
-            if (temp[0].substr(0, 1) === '(') {
-                ret += temp[0] + ' => ';
-                temp.shift();
-            } else {
-                ret += '(' + temp[0] + ') => ';
-                temp.shift();
-            }
-            temp = temp.join(' => ');
-            ret += temp;
-        }
+        ret += stringifyFunction(obj, replacer, space, forceMultiline, level, path, paths);
     } else if (obj instanceof Array) {
         paths.push({
             object: obj,
             path: path
         });
-        ret += '[';
-        let elements = [];
-        for (let i = 0; i < obj.length; i++) {
-            elements.push(_stringify(obj[i], replacer, space, forceMultiline, level + 1, path + (path !== '/' ? '/' : '') + i.toString(), paths));
+        let type = obj.constructor.name;
+        if (type !== 'Array') {
+            ret += stringifyClass(obj, type, replacer, space, forceMultiline, level, path, paths);
+            let forceMultilineOverride = {
+                array: forceMultiline.array || forceMultiline.class,
+                class: forceMultiline.class,
+                function: forceMultiline.function,
+                object: forceMultiline.object
+            };
+            ret += stringifyArray(obj, type, replacer, space, forceMultilineOverride, level, path, paths);
+        } else {
+            ret += stringifyArray(obj, type, replacer, space, forceMultiline, level, path, paths);
         }
-        ret += renderElements(elements, space, forceMultiline.array, level);
-        ret += ']';
     } else if (obj instanceof Object) {
         paths.push({
             object: obj,
             path: path
         });
         let type = obj.constructor.name;
-        let elements = [];
         if (['Object', 'Array', 'Function'].indexOf(type) < 0) {
-            ret += type + (space !== undefined ? ' ' : '');
-            ret += '{';
-            let properties = getRWProperties(obj);
-            for (let j = properties.length - 1; j >= 0; j--) {
-                elements.push('"' + properties[j].toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[properties[j]], replacer, space, forceMultiline, level + 1, path + (path !== '/' ? '/' : '') + '"' + properties[j].toString() + '"', paths));
-            }
-            ret += renderElements(elements, space, forceMultiline.class, level);
-            ret += '}';
+            ret += stringifyClass(obj, type, replacer, space, forceMultiline, level, path, paths);
         } else {
-            ret += '{';
-            for (let key in obj) {
-                if (obj.hasOwnProperty(key)) {
-                    elements.push('"' + key.toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[key], replacer, space, forceMultiline, level + 1, path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"', paths));
-                }
-            }
-            ret += renderElements(elements, space, forceMultiline.object, level);
-            ret += '}';
+            ret += stringifyObject(obj, type, replacer, space, forceMultiline, level, path, paths);
         }
     } else {
-        if (isNaN(obj)) {
+        if (isNaN(obj) || (obj === obj.toString())) {
             ret += '"' + obj.toString() + '"';
         } else {
             ret += obj.toString();

@@ -56,6 +56,46 @@ as well as the following for arrays:
         }
     ]
 
+### Collections
+
+JSON++ supports object-level attributes/array-elements as extensions of an `Array` class.  This can be demonstrated with the following code:
+
+    class Foo extends Array {
+        constructor(settings) {
+            super();
+            this._bar = 'bar';
+        }
+        
+        get Bar() {
+            return (this._bar);
+        }
+        set Bar(value) {
+            this._bar = value;
+        }
+    }
+    
+    let foo = new Foo({ });
+    foo.push('1');
+    foo.push(2);
+    foo.push('3');
+    console.log(JSONPP.stringify(foo, undefined, 4, true));
+
+will yield:
+
+    Foo {
+        "Foo": "foo"
+    }[
+        "1",
+        2,
+        "3"
+    ]
+
+which can be in turn deserialized with:
+
+    let foo = JSONPP.parse('A{"Foo":"foo"}["1",2,"3"]', {
+        Foo: Foo
+    });
+
 ### Lambdas
 
 Contextless lambda expressions are supported within this library, for example:
