@@ -108,11 +108,11 @@ Type preservation is possible assuming definitions of types exist on the `parse`
     }
     
     class Baz extends Foo {
-    constructor(settings) {
-    super(settings);
-    this._qux = (settings.hasOwnProperty('Qux') ? settings['Qux'] : 'qux');
-    this._quux = (settings.hasOwnProperty('Quux') ? settings['Quux'] : 'quux');
-    }
+        constructor(settings) {
+            super(settings);
+            this._qux = (settings.hasOwnProperty('Qux') ? settings['Qux'] : 'qux');
+            this._quux = (settings.hasOwnProperty('Quux') ? settings['Quux'] : 'quux');
+        }
     
         get Qux() { return (this._qux); }
         set Qux(value) { this._qux = value; }
@@ -124,16 +124,22 @@ Type preservation is possible assuming definitions of types exist on the `parse`
     let baz = {
         baz: new Baz({ })
     };
-    console.log(exports.stringify(baz));
+    console.log(exports.stringify(baz, undefined, 4, true));
 
 Produces:
 
-    {"baz":Baz:{"Bar":"baz","Quux":"quux","Qux":"qux"}}
+    {
+        "baz": Baz {
+            "Bar": "baz",
+            "Quux": "quux",
+            "Qux": "qux"
+        }
+    }
 
 Which translates back into an instance of `Baz` via:
 
     console.log(exports.parse(exports.stringify(baz), {
-		Foo: Foo,
+        Foo: Foo,
         Baz: Baz
     }));
 

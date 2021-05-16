@@ -1,3 +1,5 @@
+const objectFilter = new RegExp(/^\s*[a-zA-Z]*\s*\{/);
+
 function escaped(str, index) {
     let ret = false;
     for (let i = index - 1; i >= 0; i--) {
@@ -31,6 +33,25 @@ function getRWProperties(obj) {
         proto = Object.getPrototypeOf(proto);
     }
     return (names);
+}
+
+function isObject(json) {
+    let trimmed = json.trim();
+    let firstBracket = trimmed.indexOf('{');
+    if (firstBracket === 0) {
+        return ({
+            obj: trimmed,
+            type: null
+        });
+    } else if ((firstBracket > 0) && isPalindromic(toBrackets(trimmed.substr(0, firstBracket)))) {
+        if (!objectFilter.test(trimmed.substr(0, firstBracket + 1))) { return (false); }
+        return ({
+            obj: trimmed.substr(firstBracket),
+            type: trimmed.substr(0, firstBracket)
+        });
+    } else {
+        return (false);
+    }
 }
 
 function isPalindromic(subject) {
@@ -172,20 +193,11 @@ function parseArray(json, constructorHash, path, paths, linkQueue) {
         switch (parts.length) {
             case 1:
                 parts[0] = parts[0].trim();
-                ret.push(parseValue(parts[0], undefined, constructorHash, path + (path !== '/' ? '/' : '') + '[' + i.toString() + ']', paths, linkQueue));
-                break;
-            case 2:
-                parts[0] = parts[0].trim();
-                parts[1] = parts[1].trim();
-                if ((constructorHash !== undefined) && (constructorHash.hasOwnProperty(parts[0].trim()))) {
-                    let newSettings = parseValue(parts[1], undefined, constructorHash, path + (path !== '/' ? '/' : '') + '[' + i.toString() + ']', paths, linkQueue);
-                    if (newSettings instanceof Array) {
-                        ret.push(new constructorHash[parts[0]](...newSettings));
-                    } else {
-                        ret.push(new constructorHash[parts[0]](newSettings));
-                    }
+                let objInfo = isObject(parts[0]);
+                if ((objInfo !== false) && (objInfo['type'] !== null)) {
+                    ret.push(parseValue(objInfo.obj, objInfo.type, constructorHash, path + (path !== '/' ? '/' : '') + '[' + i.toString() + ']', paths, linkQueue));
                 } else {
-                    ret.push(parseValue(parts[1], parts[0], constructorHash, path + (path !== '/' ? '/' : '') + '[' + i.toString() + ']', paths, linkQueue));
+                    ret.push(parseValue(parts[0], undefined, constructorHash, path + (path !== '/' ? '/' : '') + '[' + i.toString() + ']', paths, linkQueue));
                 }
                 break;
             default:
@@ -211,21 +223,11 @@ function parseObject(json, constructorHash, path, paths, linkQueue) {
             case 2:
                 parts[0] = parts[0].trim();
                 parts[1] = parts[1].trim();
-                ret[parseValue(parts[0], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue)] = parseValue(parts[1], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue);
-                break;
-            case 3:
-                parts[0] = parts[0].trim();
-                parts[1] = parts[1].trim();
-                parts[2] = parts[2].trim();
-                if ((constructorHash !== undefined) && (constructorHash.hasOwnProperty(parts[1].trim()))) {
-                    let newSettings = parseValue(parts[2], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue);
-                    if (newSettings instanceof Array) {
-                        ret[parseValue(parts[0], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue)] = new constructorHash[parts[1]](...newSettings);
-                    } else {
-                        ret[parseValue(parts[0], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue)] = new constructorHash[parts[1]](newSettings);
-                    }
+                let objInfo = isObject(parts[1]);
+                if ((objInfo !== false) && (objInfo['type'] !== null)) {
+                    ret[parseValue(parts[0], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue)] = parseValue(objInfo.obj, objInfo.type, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue);
                 } else {
-                    ret[parseValue(parts[0], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue)] = parseValue(parts[2], parts[1], constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue);
+                    ret[parseValue(parts[0], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue)] = parseValue(parts[1], undefined, constructorHash, path + (path !== '/' ? '/' : '') + parts[0], paths, linkQueue);
                 }
                 break;
             default:
@@ -312,6 +314,30 @@ function parseValue(value, type, constructorHash, path, paths, linkQueue) {
 
 }
 
+function renderElements(elements, space, forceMultiline, level) {
+    if (space === undefined) {
+        return (elements.join(','));
+    } else {
+        if (elements.length > 0) {
+            if (forceMultiline || renderMultiline(elements, space)) {
+                elements = '\r\n' + repeat(space, level + 1) + elements.join(',\r\n' + repeat(space, level + 1));
+                return (' ' + elements + '\r\n' + repeat(space, level));
+            } else {
+                return (' ' + elements.join(', ') + ' ');
+            }
+        }
+    }
+}
+
+function renderMultiline(elements, space) {
+    let joined = elements.join(space === undefined ? ',' : ', ');
+    if (joined.length > 80) { return (true); }
+    for (let i = elements.length - 1; i >= 0; i--) {
+        if (elements[i].indexOf('\n') >= 0) { return (true); }
+    }
+    return (false);
+}
+
 function repeat(str, times) {
     let ret = '';
     for (let i = 0; i < times; i++) {
@@ -320,7 +346,38 @@ function repeat(str, times) {
     return (ret);
 }
 
-function _stringify(obj, replacer, space, level, path, paths) {
+function toBrackets(str) {
+    let ret = [];
+    let inString = false;
+    for (let i = 0; i < str.length; i++) {
+        let char = str.substr(i, 1);
+        switch (char) {
+            case '(':
+            case ')':
+            case '[':
+            case ']':
+            case '{':
+            case '}':
+                if (inString === false) {
+                    ret.push(char);
+                }
+                break;
+            case "'":
+            case '"':
+                if (inString === char) {
+                    if (!escaped(str, i)) {
+                        inString = false;
+                    }
+                } else if (inString === false) {
+                    inString = char;
+                }
+                break;
+        }
+    }
+    return (ret);
+}
+
+function _stringify(obj, replacer, space, forceMultiline, level, path, paths) {
     let ret = '';
     for (let i = paths.length - 1; i >= 0; i--) {
         if (paths[i].object === obj) {
@@ -356,53 +413,37 @@ function _stringify(obj, replacer, space, level, path, paths) {
             object: obj,
             path: path
         });
-        if (space !== undefined) { ret += space; }
         ret += '[';
+        let elements = [];
         for (let i = 0; i < obj.length; i++) {
-            if (i > 0) {
-                ret += ',';
-                if (space !== undefined) { ret += '\r\n'; }
-            }
-            ret += _stringify(obj[i], replacer, space, level + 1, path + (path !== '/' ? '/' : '') + i.toString(), paths);
+            elements.push(_stringify(obj[i], replacer, space, forceMultiline, level + 1, path + (path !== '/' ? '/' : '') + i.toString(), paths));
         }
-        if (space !== undefined) { ret += space; }
+        ret += renderElements(elements, space, forceMultiline.array, level);
         ret += ']';
     } else if (obj instanceof Object) {
         paths.push({
             object: obj,
             path: path
         });
-        if (space !== undefined) { ret += space; }
         let type = obj.constructor.name;
+        let elements = [];
         if (['Object', 'Array', 'Function'].indexOf(type) < 0) {
-            ret += type + ':';
+            ret += type + (space !== undefined ? ' ' : '');
             ret += '{';
-            let i = 0;
             let properties = getRWProperties(obj);
             for (let j = properties.length - 1; j >= 0; j--) {
-                if (i > 0) {
-                    ret += ',';
-                    if (space !== undefined) { ret += '\r\n'; }
-                }
-                ret += '"' + properties[j].toString() + '":' + _stringify(obj[properties[j]], replacer, space, level + 1, path + (path !== '/' ? '/' : '') + '"' + properties[i].toString() + '"', paths);
-                i++;
+                elements.push('"' + properties[j].toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[properties[j]], replacer, space, forceMultiline, level + 1, path + (path !== '/' ? '/' : '') + '"' + properties[j].toString() + '"', paths));
             }
-            if (space !== undefined) { ret += space; }
+            ret += renderElements(elements, space, forceMultiline.class, level);
             ret += '}';
         } else {
             ret += '{';
-            let i = 0;
             for (let key in obj) {
                 if (obj.hasOwnProperty(key)) {
-                    if (i > 0) {
-                        ret += ',';
-                        if (space !== undefined) { ret += '\r\n'; }
-                    }
-                    ret += '"' + key.toString() + '":' + _stringify(obj[key], replacer, space, level + 1, path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"', paths);
-                    i++;
+                    elements.push('"' + key.toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[key], replacer, space, forceMultiline, level + 1, path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"', paths));
                 }
             }
-            if (space !== undefined) { ret += space; }
+            ret += renderElements(elements, space, forceMultiline.object, level);
             ret += '}';
         }
     } else {
@@ -417,12 +458,21 @@ function _stringify(obj, replacer, space, level, path, paths) {
 
 function _parse(json, constructorHash, path, paths, linkQueue) {
     json = json.trim();
-    let objectMode = (json.substr(0, 1) === '{');
+    let arrayMode = (json.substr(0, 1) === '[');
     let ret = undefined;
-    if (objectMode) {
-        ret = parseObject(json, constructorHash, path, paths, linkQueue);
-    } else {
+    if (arrayMode) {
         ret = parseArray(json, constructorHash, path, paths, linkQueue);
+    } else {
+        let obj = isObject(json);
+        if (obj === false) {
+            throw 'Invalid JSON++ root object';
+        } else {
+            if (obj.type !== null) {
+                ret = parseObject(obj.obj, constructorHash, path, paths, linkQueue);
+            } else {
+                ret = parseValue(obj.obj, obj.type, constructorHash, path, paths, linkQueue);
+            }
+        }
     }
     return (ret);
 }
@@ -430,6 +480,7 @@ function _parse(json, constructorHash, path, paths, linkQueue) {
 function _set(obj, path, value) {
     let parts = splitOnLevel(path, '/');
     let node = obj;
+    let props = getRWProperties(obj);
     parts.shift();
     while (parts.length > 0) {
         let trimmed = parts.shift().trim();
@@ -439,13 +490,17 @@ function _set(obj, path, value) {
             case '"':
                 id = trimmed.substr(1, trimmed.length - 2);
                 if (!node.hasOwnProperty(id)) {
-                    throw 'Linking failed: path `' + path + '` does not exist'
+                    if (props.indexOf(id) < 0) {
+                        throw 'Linking failed: path `' + path + '` does not exist'
+                    }
                 }
                 break;
             case '[':
                 id = parseInt(trimmed.substr(1, trimmed.length - 2));
                 if (!node.hasOwnProperty(id)) {
-                    throw 'Linking failed: path `' + path + '` does not exist'
+                    if (props.indexOf(id) < 0) {
+                        throw 'Linking failed: path `' + path + '` does not exist'
+                    }
                 }
                 break;
         }
@@ -455,9 +510,9 @@ function _set(obj, path, value) {
             } else {
                 node = node[id];
             }
+            props = getRWProperties(node);
         }
     }
-    console.log(parts, node);
 }
 
 exports.parse = function (json, constructorHash, path, paths, linkQueue) {
@@ -476,7 +531,7 @@ exports.parse = function (json, constructorHash, path, paths, linkQueue) {
     return (ret);
 };
 
-exports.stringify = function (obj, replacer, space) {
+exports.stringify = function (obj, replacer, space, forceMultiline) {
     if (space !== undefined) {
         if (!isNaN(space)) {
             if (space > 10) {
@@ -492,5 +547,33 @@ exports.stringify = function (obj, replacer, space) {
             }
         }
     }
-    return (_stringify(obj, replacer, space, 0, '/', []));
+    if (forceMultiline === true) {
+        forceMultiline = {
+            array: true,
+            class: true,
+            function: true,
+            object: true
+        };
+    } else if ((forceMultiline === undefined) || (forceMultiline === false) || (forceMultiline === null)) {
+        forceMultiline = {
+            array: false,
+            class: false,
+            function: false,
+            object: false
+        };
+    } else {
+        if (!forceMultiline.hasOwnProperty('array')) {
+            forceMultiline.array = false;
+        }
+        if (!forceMultiline.hasOwnProperty('function')) {
+            forceMultiline.function = false;
+        }
+        if (!forceMultiline.hasOwnProperty('object')) {
+            forceMultiline.object = false;
+        }
+        if (!forceMultiline.hasOwnProperty('class')) {
+            forceMultiline.class = forceMultiline.object;
+        }
+    }
+    return (_stringify(obj, replacer, space, forceMultiline, 0, '/', []));
 };

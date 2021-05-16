@@ -28,7 +28,7 @@ describe('JSONPP.parse', () => {
                 this._bar = "baz";
             }
         }
-        let test = '{"foo":Foo:{"_bar":"baz"}}';
+        let test = '{"foo":Foo{"_bar":"baz"}}';
         let check = JSONPP.parse(test, {
             Foo: Foo
         });
@@ -151,7 +151,7 @@ describe('JSONPP.stringify', () => {
         let test = {
             foo: new Foo()
         };
-        let check = '{"foo":Foo:{"Bar":"baz"}}';
+        let check = '{"foo":Foo{"Bar":"baz"}}';
         expect(JSONPP.stringify(test)).toBe(check);
     });
     it('should work with root array', () => {
