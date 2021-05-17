@@ -7,7 +7,7 @@
     - [Lambdas](#lambdas)
     - [Root Level Arrays](#root-level-arrays)
     - [Type Preservation](#type-preservation)
-- [Useage](#useage)
+- [Usage](#usage)
     - [Methods](#methods)
         - [parse(jsonpp[, constructorHash={}])](#parsejsonpp-constructorhash)
         - [stringify(obj[, replacer=undefined[, space=undefined[, forceMultiline=false]]])](#stringifyobj-replacerundefined-spaceundefined-forcemultilinefalse)
@@ -229,7 +229,7 @@ To yield:
         })
     }
 
-## Useage
+## Usage
 
 Via NPM:
 
@@ -290,4 +290,4 @@ _forceMultiline_
         object: true
     }
 
-If `forceMultiline.class` is `undefined` then `forceMultiline.object` will fill the value for it, the default value otherwise is `false`. 
+If `forceMultiline.class` is `undefined` then `forceMultiline.object` will fill the value for it, the default value otherwise is `false`.
