@@ -273,7 +273,7 @@ The `Array`, `Object`, or `Class` instance to be serialized.
 
 _replacer_
 
-The replacer argument may be an object of settings defined by their argument names.  **TODO**: not yet implemented, stub for `JSON.parse` style `replacer` hook.
+The replacer argument may be an object of settings defined by their argument names.  `JSON.parse` style `replacer` hook taking `(key, value)` arguments to filter elements being saved.
 
 _space_
 

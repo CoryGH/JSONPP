@@ -474,7 +474,9 @@ function stringifyArray(obj, type, replacer, space, forceMultiline, classInterna
     let elements = [];
     let ret = '[';
     for (let i = 0; i < obj.length; i++) {
-        elements.push(_stringify(obj[i], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + i.toString(), paths));
+        if ((replacer === undefined) || replacer(i, obj[i])) {
+            elements.push(_stringify(obj[i], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + i.toString(), paths));
+        }
     }
     ret += renderElements(elements, space, forceMultiline.array, level);
     ret += ']';
@@ -488,14 +490,18 @@ function stringifyClass(obj, type, replacer, space, forceMultiline, classInterna
     if (classInternals) {
         for (let key in obj) {
             if (obj.hasOwnProperty(key)) {
-                elements.push('"' + key.toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[key], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"', paths));
+                if ((replacer === undefined) || replacer(key, obj[key])) {
+                    elements.push('"' + key.toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[key], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"', paths));
+                }
             }
         }
     }
     if (classExternals) {
         let properties = getRWProperties(obj);
         for (let j = properties.length - 1; j >= 0; j--) {
-            elements.push('"' + properties[j].toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[properties[j]], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + '"' + properties[j].toString() + '"', paths));
+            if ((replacer === undefined) || replacer(j, obj[properties[j]])) {
+                elements.push('"' + properties[j].toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[properties[j]], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + '"' + properties[j].toString() + '"', paths));
+            }
         }
     }
     ret += renderElements(elements, space, forceMultiline.class, level);
@@ -528,7 +534,9 @@ function stringifyObject(obj, type, replacer, space, forceMultiline, classIntern
     let ret = '{';
     for (let key in obj) {
         if (obj.hasOwnProperty(key)) {
-            elements.push('"' + key.toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[key], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"', paths));
+            if ((replacer === undefined) || replacer(key, obj[key])) {
+                elements.push('"' + key.toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[key], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"', paths));
+            }
         }
     }
     ret += renderElements(elements, space, forceMultiline.object, level);
@@ -616,6 +624,7 @@ exports.stringify = function (obj, replacer, space, forceMultiline, classInterna
             classExternals = replacer.classExternals;
             replacer = replacer.replacer;
         }
+        if (!(replacer instanceof Function)) { replacer = undefined; }
     }
     if (space !== undefined) {
         if (!isNaN(space)) {

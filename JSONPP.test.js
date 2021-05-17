@@ -280,4 +280,15 @@ describe('JSONPP.stringify', () => {
         let check = '{"foo":"bar","qux":{"baz":/},"quux":/"qux"}';
         expect(JSONPP.stringify(test)).toBe(check);
     });
+    it('should work with replacer function', () => {
+        let test = {
+            foo: 'bar',
+            baz: 'qux',
+            quux: [ 'foo', 'bar', 'baz', 'qux', 'quux' ]
+        };
+        let check = '{"foo":"bar","quux":["foo","baz","qux","quux"]}';
+        expect(JSONPP.stringify(test, (key, value) => {
+            return ((key !== 'baz') && ((key !== 1)));
+        })).toBe(check);
+    });
 });
