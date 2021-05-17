@@ -470,31 +470,40 @@ function _set(obj, path, value) {
     }
 }
 
-function stringifyArray(obj, type, replacer, space, forceMultiline, level, path, paths) {
+function stringifyArray(obj, type, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths) {
     let elements = [];
     let ret = '[';
     for (let i = 0; i < obj.length; i++) {
-        elements.push(_stringify(obj[i], replacer, space, forceMultiline, level + 1, path + (path !== '/' ? '/' : '') + i.toString(), paths));
+        elements.push(_stringify(obj[i], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + i.toString(), paths));
     }
     ret += renderElements(elements, space, forceMultiline.array, level);
     ret += ']';
     return (ret);
 }
 
-function stringifyClass(obj, type, replacer, space, forceMultiline, level, path, paths) {
+function stringifyClass(obj, type, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths) {
     let elements = [];
     let ret = type + (space !== undefined ? ' ' : '');
     ret += '{';
-    let properties = getRWProperties(obj);
-    for (let j = properties.length - 1; j >= 0; j--) {
-        elements.push('"' + properties[j].toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[properties[j]], replacer, space, forceMultiline, level + 1, path + (path !== '/' ? '/' : '') + '"' + properties[j].toString() + '"', paths));
+    if (classInternals) {
+        for (let key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                elements.push('"' + key.toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[key], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"', paths));
+            }
+        }
+    }
+    if (classExternals) {
+        let properties = getRWProperties(obj);
+        for (let j = properties.length - 1; j >= 0; j--) {
+            elements.push('"' + properties[j].toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[properties[j]], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + '"' + properties[j].toString() + '"', paths));
+        }
     }
     ret += renderElements(elements, space, forceMultiline.class, level);
     ret += '}';
     return (ret);
 }
 
-function stringifyFunction(obj, replacer, space, forceMultiline, level, path, paths) {
+function stringifyFunction(obj, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths) {
     let ret = '';
     let fnBody = obj.toString();
     if (fnBody.substr(0, 9) === 'function ') {
@@ -514,12 +523,12 @@ function stringifyFunction(obj, replacer, space, forceMultiline, level, path, pa
     return (ret);
 }
 
-function stringifyObject(obj, type, replacer, space, forceMultiline, level, path, paths) {
+function stringifyObject(obj, type, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths) {
     let elements = [];
     let ret = '{';
     for (let key in obj) {
         if (obj.hasOwnProperty(key)) {
-            elements.push('"' + key.toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[key], replacer, space, forceMultiline, level + 1, path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"', paths));
+            elements.push('"' + key.toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[key], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"', paths));
         }
     }
     ret += renderElements(elements, space, forceMultiline.object, level);
@@ -527,7 +536,7 @@ function stringifyObject(obj, type, replacer, space, forceMultiline, level, path
     return (ret);
 }
 
-function _stringify(obj, replacer, space, forceMultiline, level, path, paths) {
+function _stringify(obj, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths) {
     let ret = '';
     for (let i = paths.length - 1; i >= 0; i--) {
         if (paths[i].object === obj) {
@@ -543,7 +552,7 @@ function _stringify(obj, replacer, space, forceMultiline, level, path, paths) {
             object: obj,
             path: path
         });
-        ret += stringifyFunction(obj, replacer, space, forceMultiline, level, path, paths);
+        ret += stringifyFunction(obj, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths);
     } else if (obj instanceof Array) {
         paths.push({
             object: obj,
@@ -551,16 +560,16 @@ function _stringify(obj, replacer, space, forceMultiline, level, path, paths) {
         });
         let type = obj.constructor.name;
         if (type !== 'Array') {
-            ret += stringifyClass(obj, type, replacer, space, forceMultiline, level, path, paths);
+            ret += stringifyClass(obj, type, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths);
             let forceMultilineOverride = {
                 array: forceMultiline.array || forceMultiline.class,
                 class: forceMultiline.class,
                 function: forceMultiline.function,
                 object: forceMultiline.object
             };
-            ret += stringifyArray(obj, type, replacer, space, forceMultilineOverride, level, path, paths);
+            ret += stringifyArray(obj, type, replacer, space, forceMultilineOverride, classInternals, classExternals, level, path, paths);
         } else {
-            ret += stringifyArray(obj, type, replacer, space, forceMultiline, level, path, paths);
+            ret += stringifyArray(obj, type, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths);
         }
     } else if (obj instanceof Object) {
         paths.push({
@@ -569,9 +578,9 @@ function _stringify(obj, replacer, space, forceMultiline, level, path, paths) {
         });
         let type = obj.constructor.name;
         if (['Object', 'Array', 'Function'].indexOf(type) < 0) {
-            ret += stringifyClass(obj, type, replacer, space, forceMultiline, level, path, paths);
+            ret += stringifyClass(obj, type, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths);
         } else {
-            ret += stringifyObject(obj, type, replacer, space, forceMultiline, level, path, paths);
+            ret += stringifyObject(obj, type, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths);
         }
     } else {
         if (isNaN(obj) || (obj === obj.toString())) {
@@ -598,7 +607,16 @@ exports.parse = function (json, constructorHash) {
     return (ret);
 };
 
-exports.stringify = function (obj, replacer, space, forceMultiline) {
+exports.stringify = function (obj, replacer, space, forceMultiline, classInternals, classExternals) {
+    if (replacer !== undefined) {
+        if ((replacer instanceof Object) && (!(replacer instanceof Function))) {
+            space = replacer.space;
+            forceMultiline = replacer.forceMultiline;
+            classInternals = replacer.classInternals;
+            classExternals = replacer.classExternals;
+            replacer = replacer.replacer;
+        }
+    }
     if (space !== undefined) {
         if (!isNaN(space)) {
             if (space > 10) {
@@ -642,5 +660,7 @@ exports.stringify = function (obj, replacer, space, forceMultiline) {
             forceMultiline.class = forceMultiline.object;
         }
     }
-    return (_stringify(obj, replacer, space, forceMultiline, 0, '/', []));
+    classInternals = (classInternals === true);
+    classExternals = (classExternals !== false);
+    return (_stringify(obj, replacer, space, forceMultiline, classInternals, classExternals, 0, '/', []));
 };

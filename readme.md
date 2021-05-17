@@ -261,7 +261,7 @@ The optional `constructorHash` argument to the `parse` function is the second ar
 
 would define a `Foo` type (key) which points to the `Foo` class (value) in-code.  The translated object is typically passed as a `settings` `Object` to the constructor of the type being mapped.
 
-### stringify(obj[, replacer=undefined[, space=undefined[, forceMultiline=false]]])
+### stringify(obj[, replacer=undefined[, space=undefined[, forceMultiline=false[, classInternals=false[, classExternals=true]]]]])
 
 The `stringify` function serializes into a JSON++ string.
 
@@ -273,7 +273,7 @@ The `Array`, `Object`, or `Class` instance to be serialized.
 
 _replacer_
 
-**TODO**: not yet implemented, stub for `JSON.parse` style `replacer` hook.
+The replacer argument may be an object of settings defined by their argument names.  **TODO**: not yet implemented, stub for `JSON.parse` style `replacer` hook.
 
 _space_
 
@@ -291,3 +291,89 @@ _forceMultiline_
     }
 
 If `forceMultiline.class` is `undefined` then `forceMultiline.object` will fill the value for it, the default value otherwise is `false`.
+
+_classInternals_
+
+Default: `false`.  If set to `true` internally-defined class member properties are included in the output.
+
+    class Foo {
+        constructor(settings) {
+            this._bar = (settings.hasOwnProperty('Baz') ? settings['Baz'] : 'baz');
+        }
+        
+        get Bar() { return (this._bar); }
+        set Bar(value) { this._bar = value; }
+    }
+    
+    let foo = new Foo({ });
+    
+    console.log(JSONPP.stringify(foo, {
+        replacer: undefined,
+        space: 4,
+        forceMultiline: true,
+        classInternals: true,
+        classExternals: false
+    }));
+
+produces:
+
+    Foo {
+        "_bar": "baz"
+    }
+
+_classExternals_
+
+Default: `true`.  If set to `true` class member properties with getters and setters are included in the output.
+
+    class Foo {
+        constructor(settings) {
+            this._bar = (settings.hasOwnProperty('Baz') ? settings['Baz'] : 'baz');
+        }
+        
+        get Bar() { return (this._bar); }
+        set Bar(value) { this._bar = value; }
+    }
+    
+    let foo = new Foo({ });
+    
+    console.log(JSONPP.stringify(foo, {
+        replacer: undefined,
+        space: 4,
+        forceMultiline: true,
+        classInternals: false,
+        classExternals: true
+    }));
+
+produces:
+
+    Foo {
+        "Bar": "baz"
+    }
+
+May be combined with `classInternals` as in:
+
+    class Foo {
+        constructor(settings) {
+            this._bar = (settings.hasOwnProperty('Baz') ? settings['Baz'] : 'baz');
+        }
+        
+        get Bar() { return (this._bar); }
+        set Bar(value) { this._bar = value; }
+    }
+    
+    let foo = new Foo({ });
+    
+    console.log(JSONPP.stringify(foo, {
+        replacer: undefined,
+        space: 4,
+        forceMultiline: true,
+        classInternals: true,
+        classExternals: true
+    }));
+
+to yield:
+
+    Foo {
+        "_bar": "baz",
+        "Bar": "baz"
+    }
