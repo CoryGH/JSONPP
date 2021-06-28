@@ -1,5 +1,17 @@
 let JSONPP = require('./JSONPP.js');
 
+describe('JSONPP', () => {
+    it('should work with multiple stringify/parse calls', () => {
+        let foo = {
+            bar: (baz) => { return (baz + 1); }
+        };
+        let bar = JSONPP.stringify(foo);
+        let baz = JSONPP.parse(bar);
+        let check = JSONPP.stringify(baz);
+        let test = '{"bar":(baz\n) => {\n{\n        return baz + 1;\n      }\n}}';
+        expect(check).toBe(test);
+    });
+});
 describe('JSONPP.parse', () => {
     it('should work with root object', () => {
         let test = '{"foo":"bar"}';
