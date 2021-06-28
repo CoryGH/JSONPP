@@ -514,6 +514,11 @@ function stringifyFunction(obj, replacer, space, forceMultiline, classInternals,
     let fnBody = obj.toString();
     if (fnBody.substr(0, 9) === 'function ') {
         ret += fnBody.substr(9).replace(') {', ') => {');
+        if (ret.substr(0, 1) !== '(') {
+            ret = ret.split('(');
+            ret.shift();
+            ret = '(' + ret.join('(');
+        }
     } else {
         fnBody = fnBody.split(' => ');
         if (fnBody[0].substr(0, 1) === '(') {
