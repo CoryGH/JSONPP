@@ -273,7 +273,10 @@ function parseValue(value, type, constructorHash, path, paths, linkQueue) {
             left[i] = left[i].trim();
         }
         let right = parts[1].trim();
-        if (right.substr(0, 1) !== '{') {
+        while ((right.substr(0, 1) === '{') && (right.length > 1)) {
+            right = right.substr(1, right.length - 2).trim();
+        }
+        if (right === parts[1].trim()) {
             right = '{ return (' + right + '); }';
         }
         parts = left.concat(right);
@@ -349,7 +352,7 @@ function splitOnLevel(str, splitOn) {
 }
 
 function renderElements(elements, space, forceMultiline, level) {
-    if (space === undefined) {
+    if ((space === undefined) || (space === null) || (space.length < 1)) {
         return (elements.join(','));
     } else {
         if (elements.length > 0) {
@@ -364,7 +367,7 @@ function renderElements(elements, space, forceMultiline, level) {
 }
 
 function renderMultiline(elements, space) {
-    let joined = elements.join(space === undefined ? ',' : ', ');
+    let joined = elements.join((space === undefined) || (space === null) || (space.length < 1) ? ',' : ', ');
     if (joined.length > 80) { return (true); }
     for (let i = elements.length - 1; i >= 0; i--) {
         if (elements[i].indexOf('\n') >= 0) { return (true); }
@@ -474,8 +477,9 @@ function stringifyArray(obj, type, replacer, space, forceMultiline, classInterna
     let elements = [];
     let ret = '[';
     for (let i = 0; i < obj.length; i++) {
-        if ((replacer === undefined) || replacer(i, obj[i])) {
-            elements.push(_stringify(obj[i], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + i.toString(), paths));
+        let newPath = path + (path !== '/' ? '/' : '') + i.toString();
+        if ((replacer === undefined) || replacer(i, obj[i], newPath)) {
+            elements.push(_stringify(obj[i], replacer, space, forceMultiline, classInternals, classExternals, level + 1, newPath, paths));
         }
     }
     ret += renderElements(elements, space, forceMultiline.array, level);
@@ -485,13 +489,14 @@ function stringifyArray(obj, type, replacer, space, forceMultiline, classInterna
 
 function stringifyClass(obj, type, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths) {
     let elements = [];
-    let ret = type + (space !== undefined ? ' ' : '');
+    let ret = type + ((space !== undefined) && (space !== null) && (space.length > 0) ? ' ' : '');
     ret += '{';
     if (classInternals) {
         for (let key in obj) {
             if (obj.hasOwnProperty(key)) {
-                if ((replacer === undefined) || replacer(key, obj[key])) {
-                    elements.push('"' + key.toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[key], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"', paths));
+                let newPath = path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"';
+                if ((replacer === undefined) || replacer(key, obj[key], newPath)) {
+                    elements.push('"' + key.toString() + '":' + ((space !== undefined) && (space !== null) && (space.length > 0) ? ' ' : '') + _stringify(obj[key], replacer, space, forceMultiline, classInternals, classExternals, level + 1, newPath, paths));
                 }
             }
         }
@@ -499,8 +504,9 @@ function stringifyClass(obj, type, replacer, space, forceMultiline, classInterna
     if (classExternals) {
         let properties = getRWProperties(obj);
         for (let j = properties.length - 1; j >= 0; j--) {
-            if ((replacer === undefined) || replacer(j, obj[properties[j]])) {
-                elements.push('"' + properties[j].toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[properties[j]], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + '"' + properties[j].toString() + '"', paths));
+            let newPath = path + (path !== '/' ? '/' : '') + '"' + properties[j].toString() + '"';
+            if ((replacer === undefined) || replacer(j, obj[properties[j]], newPath)) {
+                elements.push('"' + properties[j].toString() + '":' + ((space !== undefined) && (space !== null) && (space.length > 0) ? ' ' : '') + _stringify(obj[properties[j]], replacer, space, forceMultiline, classInternals, classExternals, level + 1, newPath, paths));
             }
         }
     }
@@ -509,16 +515,84 @@ function stringifyClass(obj, type, replacer, space, forceMultiline, classInterna
     return (ret);
 }
 
+function codeIsMultiStatement(code) {
+    return (code.indexOf(';') >= 0);
+}
+
+function stringifyCode(obj, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths) {
+    let ret = obj.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+    let multiStatement = false;
+    if ((space !== undefined) && (space !== null) && (space.length > 0)) {
+        let codeLevel = level + 1;
+        for (let i = 0; i < ret.length; i++) {
+            let temp = ret[i].trim();
+            let bracketStop = 0;
+            if ((i === (ret.length - 1)) && (temp.length === 0)) { codeLevel--; }
+            else {
+                for (let j = 0; j < temp.length; j++) {
+                    if (['}', ']', ')'].indexOf(temp.substr(j, 1)) < 0) { break; }
+                    bracketStop++;
+                    codeLevel--;
+                }
+            }
+            ret[i] = space.repeat(codeLevel) + ret[i].trim();
+            codeLevel += bracketStop;
+            let brackets = toBrackets(ret[i]);
+            for (let j = brackets.length - 1; j >= 0; j--) {
+                if (['{', '[', '('].indexOf(brackets[j]) >= 0) {
+                    codeLevel++;
+                } else if (['}', ']', ')'].indexOf(brackets[j]) >= 0) {
+                    codeLevel--;
+                }
+            }
+        }
+        ret = ret.join('\n');
+        multiStatement = codeIsMultiStatement(ret);
+        return ((multiStatement ? '{' : '') + ret + (multiStatement ? '}' : ''));
+    } else {
+        //  remove comments and newlines
+        for (let i = ret.length - 1; i >= 0; i--) {
+            ret[i] = ret[i].trim();
+        }
+        ret = ret.join('');
+        multiStatement = codeIsMultiStatement(ret);
+        return ((multiStatement ? '{' : '') + ret + (multiStatement ? '}' : ''));
+    }
+}
+
 function stringifyFunction(obj, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths) {
     let ret = '';
     let fnBody = obj.toString();
     if (fnBody.substr(0, 9) === 'function ') {
-        ret += fnBody.substr(9).replace(') {', ') => {');
+        if (fnBody.substr(9, 9) === 'anonymous') {
+            ret += fnBody.substr(18);
+        } else {
+            ret += fnBody.substr(9);
+        }
+        ret = ret.split(')');
+        ret[0] = ret[0].split(',');
+        for (let i = ret[0].length - 1; i >= 0; i--) {
+            ret[0][i] = ret[0][i].trim();
+        }
+        if ((space === null) || (space === undefined) || (space.length < 1)) {
+            ret[0] = ret[0].join(',');
+        } else {
+            ret[0] = ret[0].join(', ');
+        }
+        ret = ret.join(')');
+        ret = ret.replace(') {', ') => {');
         if (ret.substr(0, 1) !== '(') {
             ret = ret.split('(');
             ret.shift();
             ret = '(' + ret.join('(');
         }
+        fnBody = ret.split(') => {');
+        let temp = ret.substr(fnBody[0].length + 6, ret.length - fnBody[0].length - 6);
+        temp = temp.trimEnd();
+        if (temp.substr(temp.length - 1, 1) === '}') {
+            temp = temp.substr(0, temp.length - 1);
+        }
+        ret = fnBody[0] + ') => ' + stringifyCode(temp, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths);
     } else {
         fnBody = fnBody.split(' => ');
         if (fnBody[0].substr(0, 1) === '(') {
@@ -528,8 +602,15 @@ function stringifyFunction(obj, replacer, space, forceMultiline, classInternals,
             ret += '(' + fnBody[0] + ') => ';
             fnBody.shift();
         }
-        fnBody = fnBody.join(' => ');
-        ret += fnBody;
+        fnBody = fnBody.join(') => {');
+        fnBody = fnBody.trim();
+        if (fnBody.substr(0, 1) === '{') {
+            fnBody = fnBody.substr(1, fnBody.length - 1);
+        }
+        if (fnBody.substr(fnBody.length - 1, 1) === '}') {
+            fnBody = fnBody.substr(0, fnBody.length - 1);
+        }
+        ret += stringifyCode(fnBody, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths);
     }
     return (ret);
 }
@@ -539,8 +620,9 @@ function stringifyObject(obj, type, replacer, space, forceMultiline, classIntern
     let ret = '{';
     for (let key in obj) {
         if (obj.hasOwnProperty(key)) {
-            if ((replacer === undefined) || replacer(key, obj[key])) {
-                elements.push('"' + key.toString() + '":' + (space !== undefined ? ' ' : '') + _stringify(obj[key], replacer, space, forceMultiline, classInternals, classExternals, level + 1, path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"', paths));
+            let newPath = path + (path !== '/' ? '/' : '') + '"' + key.toString() + '"';
+            if ((replacer === undefined) || replacer(key, obj[key], newPath)) {
+                elements.push('"' + key.toString() + '":' + ((space !== undefined) && (space !== null) && (space.length > 0) ? ' ' : '') + _stringify(obj[key], replacer, space, forceMultiline, classInternals, classExternals, level + 1, newPath, paths));
             }
         }
     }
@@ -596,10 +678,14 @@ function _stringify(obj, replacer, space, forceMultiline, classInternals, classE
             ret += stringifyObject(obj, type, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths);
         }
     } else {
-        if (isNaN(obj) || (obj === obj.toString())) {
-            ret += '"' + obj.toString() + '"';
-        } else {
-            ret += obj.toString();
+        try {
+            if (isNaN(obj) || (obj === obj.toString())) {
+                ret += '"' + obj.toString() + '"';
+            } else {
+                ret += obj.toString();
+            }
+        } catch (ex) {
+            ret += stringifyObject(new Object(obj), null, replacer, space, forceMultiline, classInternals, classExternals, level, path, paths);
         }
     }
     return (ret);
@@ -631,7 +717,7 @@ exports.stringify = function (obj, replacer, space, forceMultiline, classInterna
         }
         if (!(replacer instanceof Function)) { replacer = undefined; }
     }
-    if (space !== undefined) {
+    if ((space !== undefined) && (space !== null)) {
         if (!isNaN(space)) {
             if (space > 10) {
                 space = '          ';
@@ -645,7 +731,7 @@ exports.stringify = function (obj, replacer, space, forceMultiline, classInterna
                 space = space.substr(0, 10);
             }
         }
-    }
+    } else { space = ''; }
     if (forceMultiline === true) {
         forceMultiline = {
             array: true,
