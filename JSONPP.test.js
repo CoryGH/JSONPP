@@ -8,7 +8,7 @@ describe('JSONPP', () => {
         let bar = JSONPP.stringify(foo);
         let baz = JSONPP.parse(bar);
         let check = JSONPP.stringify(baz);
-        let test = '{"bar":(baz\n) => {\n{\n        return baz + 1;\n      }\n}}';
+        let test = '{"bar":(baz) => {return baz + 1;}}';
         expect(check).toBe(test);
     });
 });
@@ -212,7 +212,7 @@ describe('JSONPP.stringify', () => {
             function (left, right) { return left + right; },
             (left, right) => { return left + right; }
         ];
-        let check = '[(foo) => foo,(left, right) => {\n      return left + right;\n    },(left, right) => {\n      return left + right;\n    }]';
+        let check = '[(foo) => foo,(left,right) => {return left + right;},(left, right) => {return left + right;}]';
         expect(JSONPP.stringify(test)).toBe(check);
     });
     it('should work with collections', () => {
@@ -277,7 +277,7 @@ describe('JSONPP.stringify', () => {
             2,
             3
         ];
-        let check = '["foo",["bar",{"baz":() => "baz","qux":(qux) => {\n        return qux;\n      },"quux":(quux) => quux + 1},1],2,3]';
+        let check = '["foo",["bar",{"baz":() => "baz","qux":(qux) => {return qux;},"quux":(quux) => quux + 1},1],2,3]';
         expect(JSONPP.stringify(test)).toBe(check);
     });
     it('should work with recursive paths', () => {
